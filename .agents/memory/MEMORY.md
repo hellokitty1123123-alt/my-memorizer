@@ -1,0 +1,1 @@
+- [Browser-closed reminders](push-notifications.md) — use Web Push with a service worker and server-side due-review checks, not page-local timers.
