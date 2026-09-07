@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "My Memorizer"
+description = "A focused study app for memorizing long texts and flashcard sets separately, with per-material editing, deletion, spaced-repetition review schedules, and notifications for due reviews."
+version = "1.0.0"
+id = "artifacts/my-memorizer"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23223
+
+[services.development]
+run = "pnpm --filter @workspace/my-memorizer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/my-memorizer", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/my-memorizer/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23223"
+BASE_PATH = "/"
