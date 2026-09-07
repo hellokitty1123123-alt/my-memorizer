@@ -1,0 +1,387 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: materials
+    description: Text and flashcard study materials
+  - name: reviews
+    description: Spaced repetition review actions
+  - name: notifications
+    description: Browser notification settings
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /materials:
+    get:
+      operationId: listMaterials
+      tags: [materials]
+      summary: List all study materials
+      responses:
+        "200":
+          description: Materials grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaterialsOverview"
+    post:
+      operationId: createMaterial
+      tags: [materials]
+      summary: Create a text material or flashcard set
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialInput"
+      responses:
+        "201":
+          description: Created material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+  /materials/{id}:
+    get:
+      operationId: getMaterial
+      tags: [materials]
+      summary: Get one material with its cards
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+      responses:
+        "200":
+          description: Material details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+        "404":
+          description: Material not found
+    patch:
+      operationId: updateMaterial
+      tags: [materials]
+      summary: Edit a material
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialUpdate"
+      responses:
+        "200":
+          description: Updated material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+    delete:
+      operationId: deleteMaterial
+      tags: [materials]
+      summary: Delete a material
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+      responses:
+        "204":
+          description: Material deleted
+  /materials/{id}/review:
+    post:
+      operationId: reviewMaterial
+      tags: [reviews]
+      summary: Record remember or forgot and calculate the next review
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "200":
+          description: Updated review schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewResult"
+  /materials/{id}/cards:
+    post:
+      operationId: addCard
+      tags: [materials]
+      summary: Add a flashcard to a set
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardInput"
+      responses:
+        "201":
+          description: Created card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+  /materials/{id}/cards/{cardId}:
+    patch:
+      operationId: updateCard
+      tags: [materials]
+      summary: Edit a flashcard
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdate"
+      responses:
+        "200":
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+    delete:
+      operationId: deleteCard
+      tags: [materials]
+      summary: Delete a flashcard
+      parameters:
+        - $ref: "#/components/parameters/MaterialId"
+        - $ref: "#/components/parameters/CardId"
+      responses:
+        "204":
+          description: Card deleted
+  /notifications/settings:
+    get:
+      operationId: getNotificationSettings
+      tags: [notifications]
+      summary: Get notification settings
+      responses:
+        "200":
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+  /notifications/vapid-key:
+    get:
+      operationId: getNotificationVapidKey
+      tags: [notifications]
+      summary: Get the public key needed for browser push notifications
+      responses:
+        "200":
+          description: VAPID public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VapidKey"
+  /notifications/subscriptions:
+    post:
+      operationId: saveNotificationSubscription
+      tags: [notifications]
+      summary: Save a browser push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscriptionInput"
+      responses:
+        "201":
+          description: Subscription saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushSubscription"
+    put:
+      operationId: updateNotificationSettings
+      tags: [notifications]
+      summary: Update notification settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettingsInput"
+      responses:
+        "200":
+          description: Updated notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+components:
+  parameters:
+    MaterialId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Material:
+      type: object
+      required: [id, type, title, subject, dueAt, intervalDays, reviewCount, cards]
+      properties:
+        id: { type: integer }
+        type:
+          type: string
+          enum: [text, flashcard]
+        title: { type: string }
+        subject: { type: string }
+        content: { type: ["string", "null"] }
+        dueAt: { type: string, format: date-time }
+        intervalDays: { type: integer }
+        reviewCount: { type: integer }
+        streak: { type: integer }
+        lastReviewedAt: { type: ["string", "null"], format: date-time }
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+    Card:
+      type: object
+      required: [id, position, front, back]
+      properties:
+        id: { type: integer }
+        position: { type: integer }
+        front: { type: string }
+        back: { type: string }
+    MaterialInput:
+      type: object
+      required: [type, title]
+      properties:
+        type:
+          type: string
+          enum: [text, flashcard]
+        title: { type: string, minLength: 1 }
+        subject: { type: string }
+        content: { type: string }
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardInput"
+    MaterialUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        subject: { type: string }
+        content: { type: string }
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardInput"
+    CardInput:
+      type: object
+      required: [front, back]
+      properties:
+        front: { type: string, minLength: 1 }
+        back: { type: string, minLength: 1 }
+        position: { type: integer, minimum: 0 }
+    CardUpdate:
+      type: object
+      properties:
+        front: { type: string, minLength: 1 }
+        back: { type: string, minLength: 1 }
+        position: { type: integer, minimum: 0 }
+    ReviewInput:
+      type: object
+      required: [outcome]
+      properties:
+        outcome:
+          type: string
+          enum: [remembered, forgot]
+    ReviewResult:
+      type: object
+      required: [material, nextReviewAt, intervalDays]
+      properties:
+        material:
+          $ref: "#/components/schemas/Material"
+        nextReviewAt: { type: string, format: date-time }
+        intervalDays: { type: integer }
+        message: { type: string }
+    MaterialsOverview:
+      type: object
+      required: [materials, dueCount, textCount, flashcardCount]
+      properties:
+        materials:
+          type: array
+          items:
+            $ref: "#/components/schemas/Material"
+        dueCount: { type: integer }
+        textCount: { type: integer }
+        flashcardCount: { type: integer }
+    NotificationSettings:
+      type: object
+      required: [enabled, reminderHour, timezone, permissionState]
+      properties:
+        enabled: { type: boolean }
+        reminderHour: { type: integer, minimum: 0, maximum: 23 }
+        timezone: { type: string }
+        permissionState:
+          type: string
+          enum: [default, granted, denied, unsupported]
+    NotificationSettingsInput:
+      type: object
+      required: [enabled, reminderHour, timezone]
+      properties:
+        enabled: { type: boolean }
+        reminderHour: { type: integer, minimum: 0, maximum: 23 }
+        timezone: { type: string }
+    VapidKey:
+      type: object
+      required: [publicKey]
+      properties:
+        publicKey: { type: string }
+    PushSubscription:
+      type: object
+      required: [id, endpoint]
+      properties:
+        id: { type: integer }
+        endpoint: { type: string }
+    PushSubscriptionInput:
+      type: object
+      required: [endpoint, p256dh, auth]
+      properties:
+        endpoint: { type: string, minLength: 1 }
+        p256dh: { type: string, minLength: 1 }
+        auth: { type: string, minLength: 1 }
+
